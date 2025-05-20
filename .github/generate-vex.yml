@@ -1,0 +1,30 @@
+on:
+  workflow_dispatch: {}
+
+jobs:
+  generate-vex:
+    name: Generate VEX Document
+    runs-on: ubuntu-latest
+   
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create k8s Kind Cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: "vex-cluster"
+
+      - name: Generate VEX Document
+        uses: kubescape/generate-vex-action
+        with:
+          helm-chart-path: './install/kubernetes/helm/meshery'
+          install-timeout: '300s'
+          namespace: 'meshery-vex-test'
+          ready-condition: 'kubectl wait --for=condition=ready pod -l app=meshery --timeout=300s -n meshery-vex-test'
+
+      - name: Upload VEX as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vex-document
+          path: vex.json
