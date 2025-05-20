@@ -1,4 +1,4 @@
-name: Generating VEX
+name: VEX geneartion
 
 on:
   workflow_dispatch: {}
