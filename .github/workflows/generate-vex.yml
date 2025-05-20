@@ -1,4 +1,4 @@
-name: VEX geneartion
+name: VEX generation
 
 on:
   workflow_dispatch: {}
@@ -18,7 +18,7 @@ jobs:
           cluster_name: "vex-cluster"
 
       - name: Generate VEX Document
-        uses: kubescape/generate-vex-action@v.0.0.2
+        uses: kubescape/generate-vex-action@v0.0.2
         with:
           helm-chart-path: './install/kubernetes/helm/meshery'
           install-timeout: '300s'
