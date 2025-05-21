@@ -2,9 +2,9 @@ name: VEX generation
 
 on:
   workflow_dispatch: {}
-  # push:
-  #   branches:
-  #     - ci/vex-integration
+  push:
+    branches:
+      - ci/vex-integration
 
 jobs:
   generate-vex:
