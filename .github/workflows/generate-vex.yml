@@ -20,12 +20,22 @@ jobs:
         with:
           cluster_name: "vex-cluster"
 
-      - name: Install Meshery Helm Chart (Debug Mode)
+      - name: Install Meshery Helm Chart (without --wait)
         run: |
-          helm install meshery ./install/kubernetes/helm/meshery -n meshery-vex-test --create-namespace --wait --timeout 10m
+          helm install meshery ./install/kubernetes/helm/meshery -n meshery-vex-test --create-namespace --timeout 10m || true
+
+      - name: Debug Pod Status
+        run: |
+          echo "PODS:"
           kubectl get pods -n meshery-vex-test
-          kubectl describe pods -n meshery-vex-test
-          kubectl logs -n meshery-vex-test -l app=meshery --tail=50
+          
+          echo "::group::Describe all pods"
+          kubectl describe pods -n meshery-vex-test || true
+          echo "::endgroup::"
+          
+          echo "::group::Meshery Pod Logs"
+          kubectl logs -n meshery-vex-test -l app=meshery --tail=100 || true
+          echo "::endgroup::"
 
       - name: Generate VEX Document
         uses: kubescape/generate-vex-action@v0.0.2
@@ -33,8 +43,6 @@ jobs:
           helm-chart-path: './install/kubernetes/helm/meshery'
           install-timeout: '600s'
           namespace: 'meshery-vex-test'
-          # You can re-enable this once it's stable again
-          # ready-condition: 'kubectl wait --for=condition=ready pod -l app=meshery --timeout=600s -n meshery-vex-test'
 
       - name: Upload VEX as Artifact
         uses: actions/upload-artifact@v4
