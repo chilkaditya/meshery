@@ -25,30 +25,32 @@ jobs:
           helm install meshery ./install/kubernetes/helm/meshery \
             -n meshery-vex-test --create-namespace --timeout 10m || true
 
-      - name: Wait & Debug Pod Events
+      - name: Wait for Meshery Pod to Become Ready
         run: |
-          echo "Waiting for meshery pod to start..."
+          echo "Waiting for meshery pod to become Running..."
           for i in {1..10}; do
-            echo "::group::🔄 Iteration $i - Pod Status"
-            kubectl get pods -n meshery-vex-test
-            echo "Describing pod:"
-            kubectl describe pod -n meshery-vex-test -l app.kubernetes.io/name=meshery || true
-            echo "Recent Events:"
-            kubectl get events -n meshery-vex-test --sort-by=.lastTimestamp | tail -n 10
-            echo "::endgroup::"
-            echo "Sleeping for 20s..."
+            STATUS=$(kubectl get pods -n meshery-vex-test -l app.kubernetes.io/name=meshery -o jsonpath="{.items[0].status.phase}")
+            echo "Status: $STATUS"
+            if [[ "$STATUS" == "Running" ]]; then
+              echo "Meshery pod is running."
+              break
+            fi
+            echo "Sleeping for 20 seconds..."
             sleep 20
           done
+          echo "Final pod status:"
+          kubectl get pods -n meshery-vex-test
+          kubectl describe pod -n meshery-vex-test -l app.kubernetes.io/name=meshery
 
-      # - name: Generate VEX Document
-      #   uses: kubescape/generate-vex-action@v0.0.2
-      #   with:
-      #     helm-chart-path: './install/kubernetes/helm/meshery'
-      #     install-timeout: '600s'
-      #     namespace: 'meshery-vex-test'
+      - name: Generate VEX Document
+        uses: kubescape/generate-vex-action@v0.0.2
+        with:
+          helm-chart-path: './install/kubernetes/helm/meshery'
+          install-timeout: '600s'
+          namespace: 'meshery-vex-test'
 
-      # - name: Upload VEX as Artifact
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: vex-document
-      #     path: vex.json
+      - name: Upload VEX as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vex-document
+          path: vex.json
