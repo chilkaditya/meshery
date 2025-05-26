@@ -59,5 +59,4 @@ jobs:
           gh issue create \
             --title "Trivy Scan: CRITICAL/HIGH Vulnerabilities Found - $(date +'%Y-%m-%d %H:%M:%S')" \
             --body-file issue_body.txt \
-            --label "security,trivy,automated-scan"
 
