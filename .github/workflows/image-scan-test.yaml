@@ -38,17 +38,26 @@ jobs:
           name: trivy-scan-results
           path: trivy-scan-results.json
 
-      - name: Create GitHub issues for critical/high vulnerabilities
+      - name: Parse Trivy Results
+        id: parse_trivy
         run: |
-          jq -r '.Results[] | select(.Vulnerabilities != null) | .Vulnerabilities[] 
-            | select(.Severity == "CRITICAL" or .Severity == "HIGH") 
-            | "- [" + .Severity + "] " + .Title + " (" + .VulnerabilityID + ") in " + .PkgName + " - " + .Description' trivy-scan-results.json > summary.md
+          vuln_count=$(jq '[.Results[] | select(.Vulnerabilities != null) | .Vulnerabilities[] 
+            | select(.Severity == "CRITICAL" or .Severity == "HIGH")] | length' trivy-scan-results.json)
 
-          if [ -s summary.md ]; then
-            gh issue create --title "Trivy Report: Critical/High Vulnerabilities Found" --body "$(cat summary.md)"
-          else
-            echo "No CRITICAL or HIGH vulnerabilities found."
-          fi
+          echo "Found $vuln_count critical/high vulnerabilities" > issue_body.txt
+          echo '```json' >> issue_body.txt
+          jq '[.Results[] | select(.Vulnerabilities != null) | .Vulnerabilities[] 
+            | select(.Severity == "CRITICAL" or .Severity == "HIGH")][0:5]' trivy-scan-results.json >> issue_body.txt
+          echo '```' >> issue_body.txt
+          echo "vuln_count=$vuln_count" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Issue
+        if: steps.parse_trivy.outputs.vuln_count != '0'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --title "Trivy Scan: CRITICAL/HIGH Vulnerabilities Found - $(date +'%Y-%m-%d %H:%M:%S')" \
+            --body-file issue_body.txt \
+            --label "security,trivy,automated-scan"
 
