@@ -1,12 +1,17 @@
-name: Trivy Scan - Build and Scan Image
+name: Trivy Container Image Scan
 
 on:
   workflow_dispatch:
   push:
     branches: [ ci/image-scan-test ]
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   build-and-scan:
+    name: Build & Scan Container Image
     runs-on: ubuntu-latest
 
     steps:
@@ -27,9 +32,20 @@ jobs:
           format: 'json'
           output: 'trivy-scan-results.json'
 
-      - name: Upload scan results
-        uses: actions/upload-artifact@v4
-        with:
-          name: trivy-scan-results
-          path: trivy-scan-results.json
+      # - name: Upload scan results
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: trivy-scan-results
+      #     path: trivy-scan-results.json
+
+      - name: Parse scan results and create issues for critical/high
+        run: |
+          jq -r '.Results[].Vulnerabilities[] | select(.Severity == "CRITICAL" or .Severity == "HIGH") |
+          "- [" + .Severity + "] " + .Title + " (" + .VulnerabilityID + ") in " + .PkgName + " - " + .Description' trivy-scan-results.json > summary.md
+
+          if [ -s summary.md ]; then
+            gh issue create --title "Trivy Report: Critical/High Vulnerabilities Found" --body "$(cat summary.md)"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
