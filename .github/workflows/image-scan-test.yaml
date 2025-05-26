@@ -32,19 +32,22 @@ jobs:
           format: 'json'
           output: 'trivy-scan-results.json'
 
-      # - name: Upload scan results
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: trivy-scan-results
-      #     path: trivy-scan-results.json
+      - name: Upload scan results
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-scan-results
+          path: trivy-scan-results.json
 
-      - name: Parse scan results and create issues for critical/high
+      - name: Create GitHub issues for critical/high vulnerabilities
         run: |
-          jq -r '.Results[].Vulnerabilities[] | select(.Severity == "CRITICAL" or .Severity == "HIGH") |
-          "- [" + .Severity + "] " + .Title + " (" + .VulnerabilityID + ") in " + .PkgName + " - " + .Description' trivy-scan-results.json > summary.md
+          jq -r '.Results[] | select(.Vulnerabilities != null) | .Vulnerabilities[] 
+            | select(.Severity == "CRITICAL" or .Severity == "HIGH") 
+            | "- [" + .Severity + "] " + .Title + " (" + .VulnerabilityID + ") in " + .PkgName + " - " + .Description' trivy-scan-results.json > summary.md
 
           if [ -s summary.md ]; then
             gh issue create --title "Trivy Report: Critical/High Vulnerabilities Found" --body "$(cat summary.md)"
+          else
+            echo "No CRITICAL or HIGH vulnerabilities found."
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
