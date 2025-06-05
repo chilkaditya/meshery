@@ -18,20 +18,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Install Make
-        run: sudo apt-get update && sudo apt-get install -y make
-
-      - name: Build Docker image
+      - name: Free disk space
         run: |
-          make docker-build
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache
+
+      - name: Docker edge build & tag
+        run: |
+          DOCKER_BUILDKIT=1 docker build -f install/docker/Dockerfile --no-cache \
+            -t meshery:edge-latest \
+            --build-arg TOKEN=test \
+            --build-arg GIT_COMMITSHA=${GITHUB_SHA::8} \
+            --build-arg RELEASE_CHANNEL=edge \
 
       - name: Run Trivy scan on built image
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'meshery/meshery'
+          image-ref: 'meshery:edge-latest'
           format: 'json'
           output: 'trivy-scan-results.json'
 
