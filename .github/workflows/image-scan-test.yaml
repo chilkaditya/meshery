@@ -1,6 +1,10 @@
 name: Trivy Container Image Scan
 
 on:
+  workflow_run:
+    workflows: ["build-ui-and-server.yml"]
+    types:
+      - completed
   workflow_dispatch:
   push:
     branches: [ ci/image-scan-test ]
@@ -12,24 +16,31 @@ permissions:
 jobs:
   build-and-scan:
     name: Build & Scan Container Image
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      # - name: Checkout code
+      #   uses: actions/checkout@v4
 
-      - name: Free disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache
+      # - name: Free disk space
+      #   run: |
+      #     sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache
 
-      - name: Docker build 
-        run: |
-          DOCKER_BUILDKIT=1 docker build -f install/docker/Dockerfile --no-cache \
-            -t meshery:edge-latest \
-            --build-arg TOKEN=test \
-            --build-arg GIT_COMMITSHA=${GITHUB_SHA::8} \
-            --build-arg RELEASE_CHANNEL=edge \
-            .
+      # - name: Docker build 
+      #   run: |
+      #     DOCKER_BUILDKIT=1 docker build -f install/docker/Dockerfile --no-cache \
+      #       -t meshery:edge-latest \
+      #       --build-arg TOKEN=test \
+      #       --build-arg GIT_COMMITSHA=${GITHUB_SHA::8} \
+      #       --build-arg RELEASE_CHANNEL=edge \
+      #       .
+      - name: Run Trivy Scan on Published Image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'layer5/meshery:edge-latest'
+          format: 'json'
+          output: 'trivy-scan-results.json'
 
       - name: Run Trivy scan on built image
         uses: aquasecurity/trivy-action@master
