@@ -10,7 +10,7 @@ on:
     branches: [ ci/image-scan-test ]
 
 permissions:
-  contents: read
+  # contents: read
   issues: write
 
 jobs:
