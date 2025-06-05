@@ -42,12 +42,12 @@ jobs:
           format: 'json'
           output: 'trivy-scan-results.json'
 
-      - name: Run Trivy scan on built image
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: 'meshery:edge-latest'
-          format: 'json'
-          output: 'trivy-scan-results.json'
+      # - name: Run Trivy scan on built image
+      #   uses: aquasecurity/trivy-action@master
+      #   with:
+      #     image-ref: 'meshery:edge-latest'
+      #     format: 'json'
+      #     output: 'trivy-scan-results.json'
 
       - name: Upload scan results
         uses: actions/upload-artifact@v4
