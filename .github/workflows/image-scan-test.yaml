@@ -22,7 +22,7 @@ jobs:
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache
 
-      - name: Docker edge build & tag
+      - name: Docker build 
         run: |
           DOCKER_BUILDKIT=1 docker build -f install/docker/Dockerfile --no-cache \
             -t meshery:edge-latest \
