@@ -29,6 +29,7 @@ jobs:
             --build-arg TOKEN=test \
             --build-arg GIT_COMMITSHA=${GITHUB_SHA::8} \
             --build-arg RELEASE_CHANNEL=edge \
+            .
 
       - name: Run Trivy scan on built image
         uses: aquasecurity/trivy-action@master
