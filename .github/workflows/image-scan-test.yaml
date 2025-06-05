@@ -1,10 +1,10 @@
 name: Trivy Container Image Scan
 
 on:
-  workflow_run:
-    workflows: ["build-ui-and-server.yml"]
-    types:
-      - completed
+  # workflow_run:
+  #   workflows: ["build-ui-and-server.yml"]
+  #   types:
+  #     - completed
   workflow_dispatch:
   push:
     branches: [ ci/image-scan-test ]
@@ -16,7 +16,7 @@ permissions:
 jobs:
   build-and-scan:
     name: Build & Scan Container Image
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    # if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
