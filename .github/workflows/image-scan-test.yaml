@@ -1,57 +1,39 @@
 name: Trivy Container Image Scan
 
 on:
-  # workflow_run:
-  #   workflows: ["build-ui-and-server.yml"]
-  #   types:
-  #     - completed
   workflow_dispatch:
   push:
     branches: [ ci/image-scan-test ]
 
 permissions:
-  # contents: read
+  contents: read
   issues: write
 
 jobs:
   build-and-scan:
     name: Build & Scan Container Image
-    # if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # - name: Pull latest Meshery image
-      #   run: |
-      #     docker pull layer5/meshery:stable-latest
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      # - name: Free disk space
-      #   run: |
-      #     sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache
+      - name: Install Make
+        run: sudo apt-get update && sudo apt-get install -y make
 
-      # - name: Docker build 
-      #   run: |
-      #     DOCKER_BUILDKIT=1 docker build -f install/docker/Dockerfile --no-cache \
-      #       -t meshery:edge-latest \
-      #       --build-arg TOKEN=test \
-      #       --build-arg GIT_COMMITSHA=${GITHUB_SHA::8} \
-      #       --build-arg RELEASE_CHANNEL=edge \
-      #       .
-      - name: Run Trivy Scan on Published Image
+      - name: Build Docker image
+        run: |
+          make docker-build
+          docker tag meshery/meshery meshery/meshery:latest
+      - name: Run Trivy scan on built image
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'layer5/meshery:edge-latest'
+          image-ref: 'meshery/meshery:latest'
           format: 'json'
           output: 'trivy-scan-results.json'
-
-      # - name: Run Trivy scan on built image
-      #   uses: aquasecurity/trivy-action@master
-      #   with:
-      #     image-ref: 'meshery:edge-latest'
-      #     format: 'json'
-      #     output: 'trivy-scan-results.json'
 
       - name: Upload scan results
         uses: actions/upload-artifact@v4
@@ -64,14 +46,12 @@ jobs:
         run: |
           vuln_count=$(jq '[.Results[] | select(.Vulnerabilities != null) | .Vulnerabilities[] 
             | select(.Severity == "CRITICAL" or .Severity == "HIGH")] | length' trivy-scan-results.json)
-
           echo "Found $vuln_count critical/high vulnerabilities" > issue_body.txt
           echo '```json' >> issue_body.txt
           jq '[.Results[] | select(.Vulnerabilities != null) | .Vulnerabilities[] 
             | select(.Severity == "CRITICAL" or .Severity == "HIGH")][0:5]' trivy-scan-results.json >> issue_body.txt
           echo '```' >> issue_body.txt
           echo "vuln_count=$vuln_count" >> $GITHUB_OUTPUT
-
       - name: Create GitHub Issue
         if: steps.parse_trivy.outputs.vuln_count != '0'
         env:
@@ -80,4 +60,3 @@ jobs:
           gh issue create \
             --title "Trivy Scan: CRITICAL/HIGH Vulnerabilities Found - $(date +'%Y-%m-%d %H:%M:%S')" \
             --body-file issue_body.txt \
-
